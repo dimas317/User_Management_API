@@ -1,5 +1,5 @@
 # 🧩 link URL dokumentasi API Postman
-
+"untuk example requestnya sudah saya perbaiki di masing-masing bagiannya mas zaki, jadi tiap bagian ada 2 example request (yang sebelum revisi dan sesudah revisi).
 https://documenter.getpostman.com/view/49080956/2sB3QQK7vz
 
 ## 🚀 **Fitur Utama**

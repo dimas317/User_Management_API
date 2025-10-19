@@ -8,7 +8,7 @@ const validatePassword = (pw) => pw && pw.length >= 6;
 
 export const getUsers = async (req, res) => {
   try{
-    const { rows } = await pool.query('SELECT id, username, email, role, avatar_url FROM users');
+    const { rows } = await pool.query('SELECT id, username, email, password, role, avatar_url FROM users');
     res.json(rows);
   }
   catch(err){
@@ -18,7 +18,7 @@ export const getUsers = async (req, res) => {
 
 export const getUser = async (req, res) => {
   try{
-    const { rows } = await pool.query('SELECT id, username, email, role, avatar_url FROM users WHERE id = $1', [req.params.id]);
+    const { rows } = await pool.query('SELECT id, username, email, password, role, avatar_url FROM users WHERE id = $1', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
     res.json(rows[0]);
   }
@@ -31,7 +31,7 @@ export const updateProfile = async (req, res) => {
   try {
     const { id } = req.user;
     const { username, email } = req.body;
-    const query = 'UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, role, avatar_url';
+    const query = 'UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, password, role, avatar_url';
     const { rows } = await pool.query(query, [username, email, id]);
     res.json({ message: 'Profile updated', user: rows[0] });
   } catch (err) {
@@ -56,11 +56,28 @@ export const uploadAvatar = async (req, res) => {
       });
 
     const result = await uploadStream();
-    const { id } = req.user;
+    const { id } = req.user; // id dari token login
 
     await pool.query('UPDATE users SET avatar_url = $1 WHERE id = $2', [result.secure_url, id]);
 
-    res.json({ message: 'Avatar uploaded', url: result.secure_url });
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+    const user = userResult.rows[0];
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      message: 'Avatar uploaded successfully',
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        password: user.password, // hash password tampil
+        role: user.role,
+        avatar_url: user.avatar_url
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: 'Upload failed', error: err.message });
   }
@@ -69,9 +86,27 @@ export const uploadAvatar = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+    const user = result.rows[0];
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     await pool.query('DELETE FROM users WHERE id = $1', [id]);
-    res.json({ message: 'User deleted' });
+
+    res.json({
+      message: 'User deleted successfully',
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        password: user.password,
+        role: user.role,
+        avatar_url: user.avatar_url
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: 'Delete failed', error: err.message });
   }
-};  
+};

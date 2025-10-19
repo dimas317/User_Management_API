@@ -12,7 +12,7 @@ export const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
     const hashed = await bcrypt.hash(password, 10);
-    const query = 'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email';
+    const query = 'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email, password, role, avatar_url';
     const { rows } = await pool.query(query, [username, email, hashed]);
     res.status(201).json({ message: 'User registered', user: rows[0] });
   } catch (err) {
@@ -31,7 +31,7 @@ export const login = async (req, res) => {
     if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ id: rows[0].id, email: rows[0].email }, process.env.JWT_SECRET, { expiresIn: '2h' });
-    res.json({ message: 'Login successful', token, user: { id: rows[0].id, username: rows[0].username, email: rows[0].email, role: rows[0].role, avatar_url: rows[0].avatar_url } });
+    res.json({ message: 'Login successful', token, user: { id: rows[0].id, username: rows[0].username, email: rows[0].email, password: rows[0].password, role: rows[0].role, avatar_url: rows[0].avatar_url } });
   } catch (err) {
     res.status(500).json({ message: 'Login failed', error: err.message });
   }
